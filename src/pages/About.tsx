@@ -50,7 +50,7 @@ const About = () => {
       description: 'Introduced peer counseling program and mental health awareness workshops across all departments.'
     },
     {
-      year: '2024',
+      year: '2025',
       title: 'Digital Mental Health Platform',
       description: 'Launched this comprehensive platform to make mental health resources more accessible to all students.'
     }

@@ -70,7 +70,7 @@ Recovery wasn't linear. There were setbacks, but each small step forward built m
 Remember: seeking help isn't a sign of weakness—it's a sign of strength and self-awareness. Your mental health is just as important as your academic success.`,
           author: 'Anonymous Student',
           authorId: 'student1',
-          timestamp: '2024-01-15T10:30:00Z',
+          timestamp: '2025-01-15T10:30:00Z',
           excerpt: 'My personal journey through academic burnout and the strategies that helped me recover and thrive again in my studies.'
         },
         {
@@ -107,7 +107,7 @@ I'm sharing my story because I wish someone had shared theirs with me when I was
 Let's keep the conversation going. Let's break the stigma together.`,
           author: 'Sarah M.',
           authorId: 'student2',
-          timestamp: '2024-01-10T14:20:00Z',
+          timestamp: '2025-01-10T14:20:00Z',
           excerpt: 'How opening up about my anxiety helped me heal and why sharing our mental health stories is crucial for breaking stigma.'
         }
       ];

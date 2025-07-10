@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Heart, Menu, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,8 +47,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2 group">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary to-secondary-accent rounded-lg group-hover:shadow-accent transition-smooth">
-                <Heart className="h-6 w-6 text-white" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg group-hover:shadow-accent transition-smooth overflow-hidden">
+                <img 
+                  src="/lovable-uploads/9d747166-554d-4138-a753-d06cba952ebe.png" 
+                  alt="FULafia Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary-accent bg-clip-text text-transparent">
                 FULafia
@@ -115,9 +119,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-2">
-              <Heart className="h-5 w-5 text-primary" />
+              <img 
+                src="/lovable-uploads/9d747166-554d-4138-a753-d06cba952ebe.png" 
+                alt="FULafia Logo" 
+                className="h-5 w-5 object-contain"
+              />
               <span className="text-sm text-muted-foreground">
-                © 2024 FULafia. Supporting mental health awareness.
+                © 2025 FULafia. Supporting mental health awareness.
               </span>
             </div>
             <div className="text-sm text-muted-foreground">
