@@ -2,41 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* FULafia Mental Health App Design System */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Mental Health Themed Colors */
+    --background: 210 25% 98%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Calming Blue Primary */
+    --primary: 213 73% 57%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 213 73% 75%;
+    --primary-dark: 213 73% 45%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Soft Green Secondary */
+    --secondary: 84 70% 85%;
+    --secondary-foreground: 84 70% 25%;
+    --secondary-accent: 84 70% 50%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Warm Orange Accent */
+    --accent: 40 91% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-light: 40 91% 75%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 25% 95%;
+    --muted-foreground: 215 20% 45%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 213 73% 57%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Mental Health Gradients */
+    --gradient-calm: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary-accent)));
+    --gradient-gentle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-warm: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent-light)));
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -2px hsl(var(--primary) / 0.1);
+    --shadow-card: 0 2px 10px -1px hsl(var(--primary) / 0.08);
+    --shadow-accent: 0 4px 20px -2px hsl(var(--accent) / 0.15);
+
+    /* Animation Timing */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-gentle: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +120,100 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer components {
+  /* Mental Health App Specific Components */
+  .hero-gradient {
+    background: var(--gradient-calm);
+  }
+  
+  .gentle-gradient {
+    background: var(--gradient-gentle);
+  }
+  
+  .warm-gradient {
+    background: var(--gradient-warm);
+  }
+  
+  .card-soft {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-accent {
+    box-shadow: var(--shadow-accent);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-gentle {
+    transition: var(--transition-gentle);
+  }
+}
+
+@layer utilities {
+  /* Mental Health Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  .animate-gentle-bounce {
+    animation: gentleBounce 0.8s ease-out;
+  }
+  
+  .hover-lift {
+    transition: var(--transition-smooth);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-soft);
+  }
+}
+
+/* Mental Health App Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gentleBounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
   }
 }
