@@ -132,21 +132,6 @@ const Login = () => {
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
-        <Card className="card-soft">
-          <CardHeader>
-            <CardTitle className="text-sm">Demo Accounts</CardTitle>
-            <CardDescription className="text-xs">
-              Try the app with these sample accounts:
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-xs space-y-1">
-              <p><strong>Student:</strong> student@demo.com / password123</p>
-              <p><strong>Counselor:</strong> counselor@demo.com / password123</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

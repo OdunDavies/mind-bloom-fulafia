@@ -22,7 +22,15 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const NavigationItems = () => (
     <>
-      {navigation.map((item) => (
+      {navigation
+        .filter(item => {
+          // Hide assessment page for counselors
+          if (user?.userType === 'counselor' && item.href === '/quiz') {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => (
         <Link
           key={item.name}
           to={item.href}
