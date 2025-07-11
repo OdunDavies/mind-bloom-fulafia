@@ -18,6 +18,16 @@ interface BlogPost {
   authorId: string;
   timestamp: string;
   excerpt: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  id: string;
+  postId: string;
+  content: string;
+  author: string;
+  authorId: string;
+  timestamp: string;
 }
 
 const Blog = () => {
@@ -30,6 +40,8 @@ const Blog = () => {
     title: '',
     content: ''
   });
+  const [newComment, setNewComment] = useState<{[postId: string]: string}>({});
+  const [showComments, setShowComments] = useState<{[postId: string]: boolean}>({});
 
   useEffect(() => {
     // Load blog posts from localStorage or create mock data
@@ -71,7 +83,17 @@ Remember: seeking help isn't a sign of weakness—it's a sign of strength and se
           author: 'Anonymous Student',
           authorId: 'student1',
           timestamp: '2025-01-15T10:30:00Z',
-          excerpt: 'My personal journey through academic burnout and the strategies that helped me recover and thrive again in my studies.'
+          excerpt: 'My personal journey through academic burnout and the strategies that helped me recover and thrive again in my studies.',
+          comments: [
+            {
+              id: 'c1',
+              postId: '1',
+              content: 'Thank you for sharing this. I\'m going through something similar and your story gives me hope.',
+              author: 'Student Helper',
+              authorId: 'student3',
+              timestamp: '2025-01-16T09:15:00Z'
+            }
+          ]
         },
         {
           id: '2',
@@ -108,7 +130,25 @@ Let's keep the conversation going. Let's break the stigma together.`,
           author: 'Sarah M.',
           authorId: 'student2',
           timestamp: '2025-01-10T14:20:00Z',
-          excerpt: 'How opening up about my anxiety helped me heal and why sharing our mental health stories is crucial for breaking stigma.'
+          excerpt: 'How opening up about my anxiety helped me heal and why sharing our mental health stories is crucial for breaking stigma.',
+          comments: [
+            {
+              id: 'c2',
+              postId: '2',
+              content: 'Your courage to speak up is inspiring. Mental health awareness is so important.',
+              author: 'Alex K.',
+              authorId: 'student4',
+              timestamp: '2025-01-11T16:30:00Z'
+            },
+            {
+              id: 'c3',
+              postId: '2',
+              content: 'I needed to read this today. Thank you for breaking the silence.',
+              author: 'Jordan P.',
+              authorId: 'student5',
+              timestamp: '2025-01-12T10:45:00Z'
+            }
+          ]
         }
       ];
       
@@ -148,7 +188,8 @@ Let's keep the conversation going. Let's break the stigma together.`,
       author: user.name,
       authorId: user.id,
       timestamp: new Date().toISOString(),
-      excerpt: newPost.content.substring(0, 150) + '...'
+      excerpt: newPost.content.substring(0, 150) + '...',
+      comments: []
     };
 
     const updatedPosts = [post, ...blogPosts];
@@ -161,6 +202,57 @@ Let's keep the conversation going. Let's break the stigma together.`,
     toast({
       title: "Post Published",
       description: "Your story has been shared successfully.",
+    });
+  };
+
+  const handleAddComment = (postId: string) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (user.userType !== 'student') {
+      toast({
+        title: "Access Restricted",
+        description: "Only students can comment on posts.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const commentText = newComment[postId]?.trim();
+    if (!commentText) {
+      toast({
+        title: "Missing Comment",
+        description: "Please write a comment before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const comment: Comment = {
+      id: Date.now().toString(),
+      postId,
+      content: commentText,
+      author: user.name,
+      authorId: user.id,
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedPosts = blogPosts.map(post => 
+      post.id === postId 
+        ? { ...post, comments: [...post.comments, comment] }
+        : post
+    );
+    
+    setBlogPosts(updatedPosts);
+    localStorage.setItem('fulafia_blog_posts', JSON.stringify(updatedPosts));
+    
+    setNewComment({ ...newComment, [postId]: '' });
+    
+    toast({
+      title: "Comment Added",
+      description: "Your comment has been shared successfully.",
     });
   };
 
@@ -292,15 +384,72 @@ Let's keep the conversation going. Let's break the stigma together.`,
                       <Heart className="h-4 w-4 mr-1" />
                       Support
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowComments({
+                        ...showComments,
+                        [post.id]: !showComments[post.id]
+                      })}
+                    >
                       <MessageSquare className="h-4 w-4 mr-1" />
-                      Comment
+                      Comments ({post.comments.length})
                     </Button>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     Thank you for sharing your story
                   </span>
                 </div>
+
+                {/* Comments Section */}
+                {showComments[post.id] && (
+                  <div className="mt-6 pt-4 border-t space-y-4">
+                    {/* Existing Comments */}
+                    {post.comments.map((comment) => (
+                      <div key={comment.id} className="bg-muted/50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-sm">{comment.author}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(comment.timestamp)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{comment.content}</p>
+                      </div>
+                    ))}
+
+                    {/* Add Comment Form (Students Only) */}
+                    {user?.userType === 'student' && (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={newComment[post.id] || ''}
+                          onChange={(e) => setNewComment({
+                            ...newComment,
+                            [post.id]: e.target.value
+                          })}
+                          placeholder="Share your thoughts or support..."
+                          className="min-h-[80px]"
+                        />
+                        <div className="flex justify-end">
+                          <Button 
+                            size="sm"
+                            onClick={() => handleAddComment(post.id)}
+                          >
+                            Add Comment
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!user && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        <Button variant="link" onClick={() => navigate('/login')}>
+                          Login
+                        </Button>
+                        to add comments
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
