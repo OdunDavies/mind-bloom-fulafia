@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -22,11 +24,13 @@ export interface QuizResult {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (userData: any) => Promise<boolean>;
-  logout: () => void;
+  session: Session | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (userData: any) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   quizResult: QuizResult | null;
   updateQuizResult: (result: QuizResult) => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,85 +45,121 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   useEffect(() => {
-    // Load user from localStorage on app start
-    const savedUser = localStorage.getItem('fulafia_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setUser(userData);
-      
-      // Load quiz result for this user
-      const savedQuizResult = localStorage.getItem(`fulafia_quiz_${userData.id}`);
-      if (savedQuizResult) {
-        setQuizResult(JSON.parse(savedQuizResult));
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile from profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            setUser({
+              id: profile.id,
+              name: profile.name,
+              email: profile.email,
+              userType: profile.user_type as 'student' | 'counselor',
+              age: profile.age,
+              gender: profile.gender,
+              department: profile.department,
+              specialty: profile.specialty,
+              bio: profile.bio,
+              availability: profile.availability,
+              createdAt: profile.created_at
+            });
+            
+            // Load quiz result for this user
+            const savedQuizResult = localStorage.getItem(`fulafia_quiz_${profile.id}`);
+            if (savedQuizResult) {
+              setQuizResult(JSON.parse(savedQuizResult));
+            }
+          }
+        } else {
+          setUser(null);
+          setQuizResult(null);
+        }
+        
+        setLoading(false);
       }
-    }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const users = JSON.parse(localStorage.getItem('fulafia_users') || '[]');
-      const foundUser = users.find((u: User) => u.email === email);
-      
-      if (foundUser) {
-        // In a real app, you'd verify the password hash
-        const savedPassword = localStorage.getItem(`fulafia_password_${foundUser.id}`);
-        if (savedPassword === password) {
-          setUser(foundUser);
-          localStorage.setItem('fulafia_user', JSON.stringify(foundUser));
-          
-          // Load quiz result for this user
-          const savedQuizResult = localStorage.getItem(`fulafia_quiz_${foundUser.id}`);
-          if (savedQuizResult) {
-            setQuizResult(JSON.parse(savedQuizResult));
-          }
-          
-          return true;
-        }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
       }
-      return false;
+
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
-  const signup = async (userData: any): Promise<boolean> => {
+  const signup = async (userData: any): Promise<{ success: boolean; error?: string }> => {
     try {
-      const users = JSON.parse(localStorage.getItem('fulafia_users') || '[]');
+      const redirectUrl = `${window.location.origin}/`;
       
-      // Check if user already exists
-      const existingUser = users.find((u: User) => u.email === userData.email);
-      if (existingUser) {
-        return false;
+      const { error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: userData.name,
+            user_type: userData.userType,
+            age: userData.age,
+            gender: userData.gender,
+            department: userData.department,
+            specialty: userData.specialty,
+            bio: userData.bio,
+            availability: userData.availability
+          }
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
       }
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...userData,
-        createdAt: new Date().toISOString()
-      };
-      
-      users.push(newUser);
-      localStorage.setItem('fulafia_users', JSON.stringify(users));
-      localStorage.setItem(`fulafia_password_${newUser.id}`, userData.password);
-      
-      setUser(newUser);
-      localStorage.setItem('fulafia_user', JSON.stringify(newUser));
-      
-      return true;
+
+      return { success: true };
     } catch (error) {
       console.error('Signup error:', error);
-      return false;
+      return { success: false, error: 'An unexpected error occurred' };
     }
   };
 
-  const logout = () => {
+  const logout = async (): Promise<void> => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
     setQuizResult(null);
-    localStorage.removeItem('fulafia_user');
   };
 
   const updateQuizResult = (result: QuizResult) => {
@@ -132,11 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       login,
       signup,
       logout,
       quizResult,
-      updateQuizResult
+      updateQuizResult,
+      loading
     }}>
       {children}
     </AuthContext.Provider>
