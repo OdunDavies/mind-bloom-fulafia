@@ -33,7 +33,10 @@ const Login = () => {
     try {
       const { success, error: authError } = await login(email, password);
       if (success) {
-        navigate('/');
+        // Wait a moment for auth state to update, then navigate
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       } else {
         setError(authError || 'Invalid email or password. Please try again.');
       }
