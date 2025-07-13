@@ -15,8 +15,15 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,26 +45,30 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-background via-muted/30 to-background">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-6">
           <div className="flex justify-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center shadow-soft">
-              <Heart className="h-8 w-8 text-white" />
+            <div className="w-20 h-20 hero-gradient rounded-full flex items-center justify-center shadow-accent animate-gentle-bounce">
+              <Heart className="h-10 w-10 text-white" />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-foreground">Welcome Back</h2>
-          <p className="text-muted-foreground">
-            Sign in to your FULafia account to continue your mental health journey.
-          </p>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary-accent bg-clip-text text-transparent">
+              Welcome Back
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Sign in to your FULafia account to continue your mental health journey
+            </p>
+          </div>
         </div>
 
         {/* Login Form */}
-        <Card className="card-soft">
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
+        <Card className="card-soft border-0 bg-card/80 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-2">
+            <CardTitle className="text-2xl">Sign In</CardTitle>
+            <CardDescription className="text-base">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
@@ -111,7 +122,7 @@ const Login = () => {
 
               <Button
                 type="submit"
-                className="w-full hero-gradient hover:shadow-soft transition-smooth"
+                className="w-full h-12 hero-gradient hover:shadow-accent transition-smooth text-lg font-medium"
                 disabled={loading}
               >
                 {loading ? 'Signing In...' : 'Sign In'}

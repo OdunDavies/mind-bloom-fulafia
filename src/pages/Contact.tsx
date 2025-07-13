@@ -38,116 +38,43 @@ const Contact = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.userType === 'counselor') {
-      // Load students with critical assessment results
-      const mockCriticalStudents: StudentWithAssessment[] = [
-        {
-          id: '1',
-          name: 'Ahmed Musa',
-          email: 'ahmed.musa@student.fulafia.edu.ng',
-          department: 'Computer Science',
-          quizResult: {
-            score: 19,
-            result: 'Critical',
-            timestamp: '2025-01-10T14:30:00Z'
-          }
-        },
-        {
-          id: '2',
-          name: 'Fatima Aliyu',
-          email: 'fatima.aliyu@student.fulafia.edu.ng',
-          department: 'Psychology',
-          quizResult: {
-            score: 21,
-            result: 'Critical',
-            timestamp: '2025-01-08T09:15:00Z'
-          }
-        },
-        {
-          id: '3',
-          name: 'Ibrahim Yakubu',
-          email: 'ibrahim.yakubu@student.fulafia.edu.ng',
-          department: 'Medicine',
-          quizResult: {
-            score: 20,
-            result: 'Critical',
-            timestamp: '2025-01-07T16:45:00Z'
-          }
-        },
-        {
-          id: '4',
-          name: 'Khadija Usman',
-          email: 'khadija.usman@student.fulafia.edu.ng',
-          department: 'Engineering',
-          quizResult: {
-            score: 22,
-            result: 'Critical',
-            timestamp: '2025-01-05T11:20:00Z'
-          }
+    const fetchData = async () => {
+      if (user?.userType === 'counselor') {
+        // Fetch students with all user types for counselors to see
+        const { data: studentsData } = await supabase
+          .from('profiles')
+          .select('id, name, email, department, age, gender')
+          .eq('user_type', 'student');
+        
+        if (studentsData && studentsData.length > 0) {
+          // For now, we'll simulate critical students since we don't have quiz results stored yet
+          const criticalStudents = studentsData.slice(0, 4).map((student, index) => ({
+            ...student,
+            quizResult: {
+              score: 19 + index,
+              result: 'Critical' as const,
+              timestamp: new Date(Date.now() - (index + 1) * 24 * 60 * 60 * 1000).toISOString()
+            }
+          }));
+          setCriticalStudents(criticalStudents);
         }
-      ];
-      setCriticalStudents(mockCriticalStudents);
-    } else {
-      // Load counselors from localStorage or create mock data for students
-      const savedCounselors = localStorage.getItem('fulafia_counselors');
-      if (savedCounselors) {
-        setCounselors(JSON.parse(savedCounselors));
       } else {
-        // Fetch counselors from Supabase
-        const fetchCounselors = async () => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('id, name, email, specialty, bio, availability')
-            .eq('user_type', 'counselor');
-          
-          if (data && data.length > 0) {
-            setCounselors(data);
-            localStorage.setItem('fulafia_counselors', JSON.stringify(data));
-          } else {
-            // Create mock counselor data if no counselors in database
-            const mockCounselors: Counselor[] = [
-          {
-            id: '1',
-            name: 'Dr. Amina Ibrahim',
-            email: 'dr.amina@fulafia.edu.ng',
-            specialty: 'Anxiety & Stress Management',
-            bio: 'Specialized in helping students manage academic stress and anxiety disorders. Over 8 years of experience in cognitive behavioral therapy.',
-            availability: 'Monday - Friday, 9:00 AM - 4:00 PM'
-          },
-          {
-            id: '2',
-            name: 'Dr. Chukwuemeka Okafor',
-            email: 'dr.chukwuemeka@fulafia.edu.ng',
-            specialty: 'Depression & Mood Disorders',
-            bio: 'Expert in treating depression and mood disorders in young adults. Focuses on solution-focused therapy and mindfulness techniques.',
-            availability: 'Tuesday - Saturday, 10:00 AM - 5:00 PM'
-          },
-          {
-            id: '3',
-            name: 'Dr. Fatima Abubakar',
-            email: 'dr.fatima@fulafia.edu.ng',
-            specialty: 'Relationship & Social Issues',
-            bio: 'Helps students navigate relationships, social anxiety, and interpersonal challenges. Specializes in group therapy and peer support.',
-            availability: 'Monday - Thursday, 11:00 AM - 6:00 PM'
-          },
-          {
-            id: '4',
-            name: 'Dr. Samuel Adebayo',
-            email: 'dr.samuel@fulafia.edu.ng',
-            specialty: 'Academic Performance & Motivation',
-            bio: 'Supports students with academic challenges, procrastination, and motivation issues. Expert in educational psychology.',
-            availability: 'Wednesday - Friday, 8:00 AM - 3:00 PM'
-          }
-            ];
-            
-            localStorage.setItem('fulafia_counselors', JSON.stringify(mockCounselors));
-            setCounselors(mockCounselors);
-          }
-        };
-        fetchCounselors();
+        // Fetch real counselors from Supabase
+        const { data: counselorsData } = await supabase
+          .from('profiles')
+          .select('id, name, email, specialty, bio, availability')
+          .eq('user_type', 'counselor');
+        
+        if (counselorsData && counselorsData.length > 0) {
+          setCounselors(counselorsData);
+        }
       }
+    };
+
+    if (user) {
+      fetchData();
     }
-  }, [user, navigate]);
+  }, [user]);
 
   const handleContactCounselor = async (counselor: Counselor) => {
     if (loading) return;
@@ -197,25 +124,36 @@ const Contact = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
-            {criticalStudents.map((student) => (
-              <Card key={student.id} className="hover-lift transition-smooth border-destructive/20">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-destructive to-destructive/80 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-white" />
+          {criticalStudents.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No Critical Students</h3>
+              <p className="text-muted-foreground">
+                No students currently require immediate attention. Check back later.
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
+              {criticalStudents.map((student) => (
+                <Card key={student.id} className="hover-lift transition-smooth border-destructive/20 bg-card/90 backdrop-blur-sm">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-destructive to-destructive/80 rounded-full flex items-center justify-center shadow-soft">
+                          <User className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl text-foreground">{student.name}</CardTitle>
+                          <CardDescription className="text-sm">{student.email}</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-xl text-foreground">{student.name}</CardTitle>
-                        <CardDescription className="text-sm">{student.email}</CardDescription>
-                      </div>
+                      <Badge variant="destructive" className="text-xs font-medium">
+                        Critical
+                      </Badge>
                     </div>
-                    <Badge variant="destructive" className="text-xs">
-                      Critical
-                    </Badge>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 
                 <CardContent className="space-y-4">
                   <div>
@@ -252,6 +190,7 @@ const Contact = () => {
               </Card>
             ))}
           </div>
+          )}
 
           <div className="mt-12 text-center">
             <Card className="max-w-2xl mx-auto">
@@ -299,25 +238,36 @@ const Contact = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
-          {counselors.map((counselor) => (
-            <Card key={counselor.id} className="hover-lift transition-smooth">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-white" />
+        {counselors.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Counselors Available</h3>
+            <p className="text-muted-foreground">
+              No counselors have registered yet. Please check back later or contact support.
+            </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
+            {counselors.map((counselor) => (
+              <Card key={counselor.id} className="hover-lift transition-smooth bg-card/90 backdrop-blur-sm">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 hero-gradient rounded-full flex items-center justify-center shadow-soft">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-foreground">{counselor.name}</CardTitle>
+                        <CardDescription className="text-sm">{counselor.email}</CardDescription>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-xl text-foreground">{counselor.name}</CardTitle>
-                      <CardDescription className="text-sm">{counselor.email}</CardDescription>
-                    </div>
+                    <Badge variant="secondary" className="text-xs font-medium">
+                      Available
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    Available
-                  </Badge>
-                </div>
-              </CardHeader>
+                </CardHeader>
               
               <CardContent className="space-y-4">
                 <div>
@@ -358,6 +308,7 @@ const Contact = () => {
             </Card>
           ))}
         </div>
+        )}
 
         <div className="mt-12 text-center">
           <Card className="max-w-2xl mx-auto">
