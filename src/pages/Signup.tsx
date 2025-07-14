@@ -32,15 +32,8 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  const { signup, user } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
-
-  // Redirect if already logged in
-  React.useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -100,11 +93,12 @@ const Signup = () => {
         })
       };
 
-      const { success, error: authError } = await signup(userData);
+      const success = await signup(userData);
       if (success) {
-        setSuccess('Account created successfully! Please check your email to verify your account.');
+        setSuccess('Account created successfully! Redirecting...');
+        setTimeout(() => navigate('/'), 2000);
       } else {
-        setError(authError || 'An account with this email already exists.');
+        setError('An account with this email already exists.');
       }
     } catch (err) {
       setError('An error occurred during registration. Please try again.');
@@ -139,30 +133,26 @@ const Signup = () => {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-background via-muted/30 to-background">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-2xl space-y-8 animate-fade-in">
         {/* Header */}
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="w-20 h-20 hero-gradient rounded-full flex items-center justify-center shadow-accent animate-gentle-bounce">
-              <Heart className="h-10 w-10 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center shadow-soft">
+              <Heart className="h-8 w-8 text-white" />
             </div>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary-accent bg-clip-text text-transparent">
-              Join FULafia
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Create your account and start your mental health journey with us
-            </p>
-          </div>
+          <h2 className="text-3xl font-bold text-foreground">Join FULafia</h2>
+          <p className="text-muted-foreground">
+            Create your account and start your mental health journey with us.
+          </p>
         </div>
 
         {/* User Type Selection */}
-        <Card className="card-soft border-0 bg-card/80 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">I am a...</CardTitle>
-            <CardDescription className="text-base">
+        <Card className="card-soft">
+          <CardHeader>
+            <CardTitle>I am a...</CardTitle>
+            <CardDescription>
               Select your role to customize your experience
             </CardDescription>
           </CardHeader>
@@ -197,10 +187,10 @@ const Signup = () => {
         </Card>
 
         {/* Registration Form */}
-        <Card className="card-soft border-0 bg-card/80 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create Account</CardTitle>
-            <CardDescription className="text-base">
+        <Card className="card-soft">
+          <CardHeader>
+            <CardTitle>Create Account</CardTitle>
+            <CardDescription>
               {userType === 'student' 
                 ? 'Student registration - all fields are required'
                 : 'Counselor registration - all fields are required'
@@ -387,7 +377,7 @@ const Signup = () => {
 
               <Button
                 type="submit"
-                className="w-full h-12 hero-gradient hover:shadow-accent transition-smooth text-lg font-medium"
+                className="w-full hero-gradient hover:shadow-soft transition-smooth"
                 disabled={loading}
               >
                 {loading ? 'Creating Account...' : 'Create Account'}
