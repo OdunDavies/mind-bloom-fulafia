@@ -103,6 +103,9 @@ export type Database = {
           gender: string | null
           id: string
           name: string
+          quiz_result: string | null
+          quiz_score: number | null
+          quiz_timestamp: string | null
           specialty: string | null
           updated_at: string | null
           user_type: string
@@ -117,6 +120,9 @@ export type Database = {
           gender?: string | null
           id: string
           name: string
+          quiz_result?: string | null
+          quiz_score?: number | null
+          quiz_timestamp?: string | null
           specialty?: string | null
           updated_at?: string | null
           user_type: string
@@ -131,6 +137,9 @@ export type Database = {
           gender?: string | null
           id?: string
           name?: string
+          quiz_result?: string | null
+          quiz_score?: number | null
+          quiz_timestamp?: string | null
           specialty?: string | null
           updated_at?: string | null
           user_type?: string

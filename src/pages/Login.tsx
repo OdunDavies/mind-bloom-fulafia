@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -24,11 +24,11 @@ const Login = () => {
     setError('');
 
     try {
-      const success = await login(email, password);
-      if (success) {
-        navigate('/');
+      const { error } = await login(email, password);
+      if (error) {
+        setError(error);
       } else {
-        setError('Invalid email or password. Please try again.');
+        navigate('/');
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');

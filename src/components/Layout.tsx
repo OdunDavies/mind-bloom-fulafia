@@ -3,10 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const location = useLocation();
 
   const navigation = [
@@ -25,7 +25,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {navigation
         .filter(item => {
           // Hide assessment page for counselors
-          if (user?.userType === 'counselor' && item.href === '/quiz') {
+          if (profile?.user_type === 'counselor' && item.href === '/quiz') {
             return false;
           }
           return true;
@@ -79,7 +79,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <Link to="/profile">
                     <Button variant="ghost" size="sm" className="hover-lift">
                       <User className="h-4 w-4 mr-2" />
-                      {user.name}
+                      {profile?.name || 'User'}
                     </Button>
                   </Link>
                   <Button variant="ghost" size="sm" onClick={logout} className="hover-lift">

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const Signup = () => {
   const [userType, setUserType] = useState<'student' | 'counselor'>('student');
@@ -80,8 +80,7 @@ const Signup = () => {
       const userData = {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
-        userType,
+        user_type: userType,
         ...(userType === 'student' ? {
           age: parseInt(formData.age),
           gender: formData.gender,
@@ -93,12 +92,12 @@ const Signup = () => {
         })
       };
 
-      const success = await signup(userData);
-      if (success) {
-        setSuccess('Account created successfully! Redirecting...');
-        setTimeout(() => navigate('/'), 2000);
+      const { error } = await signup(formData.email, formData.password, userData);
+      if (error) {
+        setError(error);
       } else {
-        setError('An account with this email already exists.');
+        setSuccess('Account created successfully! Please check your email to verify your account.');
+        setTimeout(() => navigate('/login'), 3000);
       }
     } catch (err) {
       setError('An error occurred during registration. Please try again.');
