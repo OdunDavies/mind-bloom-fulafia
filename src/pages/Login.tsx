@@ -32,14 +32,10 @@ const Login = () => {
 
     try {
       const { success, error: authError } = await login(email, password);
-      if (success) {
-        // Wait a moment for auth state to update, then navigate
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-      } else {
+      if (!success) {
         setError(authError || 'Invalid email or password. Please try again.');
       }
+      // Let the useEffect handle navigation when user state updates
     } catch (err) {
       setError('An error occurred during login. Please try again.');
     } finally {
