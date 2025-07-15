@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,7 +31,7 @@ interface Comment {
 }
 
 const Blog = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
@@ -163,7 +163,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
       return;
     }
 
-    if (profile?.user_type !== 'student') {
+    if (user.userType !== 'student') {
       toast({
         title: "Access Restricted",
         description: "Only students can create blog posts.",
@@ -185,7 +185,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
       id: Date.now().toString(),
       title: newPost.title,
       content: newPost.content,
-      author: profile?.name || 'Anonymous',
+      author: user.name,
       authorId: user.id,
       timestamp: new Date().toISOString(),
       excerpt: newPost.content.substring(0, 150) + '...',
@@ -211,7 +211,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
       return;
     }
 
-    if (profile?.user_type !== 'student') {
+    if (user.userType !== 'student') {
       toast({
         title: "Access Restricted",
         description: "Only students can comment on posts.",
@@ -234,7 +234,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
       id: Date.now().toString(),
       postId,
       content: commentText,
-      author: profile?.name || 'Anonymous',
+      author: user.name,
       authorId: user.id,
       timestamp: new Date().toISOString()
     };
@@ -292,7 +292,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
             Share your journey, inspire others, and build a supportive community
           </p>
 
-          {profile?.user_type === 'student' && (
+          {user?.userType === 'student' && (
             <Button 
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="warm-gradient hover:shadow-accent transition-smooth"
@@ -304,7 +304,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
         </div>
 
         {/* Create Post Form */}
-        {showCreateForm && profile?.user_type === 'student' && (
+        {showCreateForm && user?.userType === 'student' && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -418,7 +418,7 @@ Let's keep the conversation going. Let's break the stigma together.`,
                     ))}
 
                     {/* Add Comment Form (Students Only) */}
-                    {profile?.user_type === 'student' && (
+                    {user?.userType === 'student' && (
                       <div className="space-y-3">
                         <Textarea
                           value={newComment[post.id] || ''}
