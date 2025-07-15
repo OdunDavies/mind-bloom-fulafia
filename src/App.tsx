@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/SupabaseAuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
@@ -12,7 +12,7 @@ import Signup from "@/pages/Signup";
 import Quiz from "@/pages/Quiz";
 import Resources from "@/pages/Resources";
 import Contact from "@/pages/Contact";
-import Blog from "@/pages/Blog";
+
 import About from "@/pages/About";
 import Profile from "@/pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -31,7 +31,7 @@ const App = () => (
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog" element={<Navigate to="/" replace />} />
               <Route path="/about" element={<About />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/quiz" element={
