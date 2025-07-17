@@ -14,7 +14,6 @@ import Contact from "@/pages/Contact";
 import Blog from "@/pages/Blog";
 import About from "@/pages/About";
 import Profile from "@/pages/Profile";
-import { Chat } from "@/pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +36,6 @@ const App = () => (
               <Route path="/blog" element={<Blog />} />
               <Route path="/about" element={<About />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/chat" element={<Chat />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

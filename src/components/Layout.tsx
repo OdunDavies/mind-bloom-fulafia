@@ -12,7 +12,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigation = [
     { name: 'Home', href: '/', icon: '🏠' },
     { name: 'Assessment', href: '/quiz', icon: '📝' },
-    { name: 'Chat', href: '/chat', icon: '💬' },
     { name: 'Resources', href: '/resources', icon: '📚' },
     { name: 'Contact', href: '/contact', icon: '👥' },
     { name: 'Blog', href: '/blog', icon: '✍️' },

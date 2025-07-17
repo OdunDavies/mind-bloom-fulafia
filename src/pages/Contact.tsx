@@ -5,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MessageSquare, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useChat } from '@/hooks/useChat';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Counselor {
   id: string;
@@ -32,10 +30,8 @@ interface StudentWithAssessment {
 const Contact = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { createConversation } = useChat();
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [criticalStudents, setCriticalStudents] = useState<StudentWithAssessment[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user?.userType === 'counselor') {
@@ -93,19 +89,8 @@ const Contact = () => {
       if (savedCounselors) {
         setCounselors(JSON.parse(savedCounselors));
       } else {
-        // Fetch counselors from Supabase
-        const fetchCounselors = async () => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('id, name, email, specialty, bio, availability')
-            .eq('user_type', 'counselor');
-          
-          if (data && data.length > 0) {
-            setCounselors(data);
-            localStorage.setItem('fulafia_counselors', JSON.stringify(data));
-          } else {
-            // Create mock counselor data if no counselors in database
-            const mockCounselors: Counselor[] = [
+        // Create mock counselor data
+        const mockCounselors: Counselor[] = [
           {
             id: '1',
             name: 'Dr. Amina Ibrahim',
@@ -138,49 +123,22 @@ const Contact = () => {
             bio: 'Supports students with academic challenges, procrastination, and motivation issues. Expert in educational psychology.',
             availability: 'Wednesday - Friday, 8:00 AM - 3:00 PM'
           }
-            ];
-            
-            localStorage.setItem('fulafia_counselors', JSON.stringify(mockCounselors));
-            setCounselors(mockCounselors);
-          }
-        };
-        fetchCounselors();
+        ];
+        
+        localStorage.setItem('fulafia_counselors', JSON.stringify(mockCounselors));
+        setCounselors(mockCounselors);
       }
     }
   }, [user, navigate]);
 
-  const handleContactCounselor = async (counselor: Counselor) => {
-    if (loading) return;
-    
-    setLoading(true);
-    try {
-      const conversation = await createConversation(counselor.id);
-      if (conversation) {
-        navigate('/chat');
-      }
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      alert('Failed to start chat. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleContactCounselor = (counselor: Counselor) => {
+    // In a real app, this would open a chat or booking system
+    alert(`Contact feature coming soon! You can reach ${counselor.name} at ${counselor.email}`);
   };
 
-  const handleContactStudent = async (student: StudentWithAssessment) => {
-    if (loading) return;
-    
-    setLoading(true);
-    try {
-      const conversation = await createConversation(student.id);
-      if (conversation) {
-        navigate('/chat');
-      }
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      alert('Failed to start chat. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleContactStudent = (student: StudentWithAssessment) => {
+    // In a real app, this would open a chat or send an email
+    alert(`Contact feature coming soon! You can reach ${student.name} at ${student.email}`);
   };
 
   // Show different content for counselors vs students
@@ -241,11 +199,10 @@ const Contact = () => {
                   <div className="pt-4 border-t">
                     <Button 
                       onClick={() => handleContactStudent(student)}
-                      disabled={loading}
                       className="w-full bg-destructive hover:bg-destructive/90 text-white transition-smooth"
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
-                      {loading ? 'Starting Chat...' : 'Start Chat'}
+                      Contact Student
                     </Button>
                   </div>
                 </CardContent>
@@ -347,11 +304,10 @@ const Contact = () => {
                 <div className="pt-4 border-t">
                   <Button 
                     onClick={() => handleContactCounselor(counselor)}
-                    disabled={loading}
                     className="w-full warm-gradient hover:shadow-accent transition-smooth"
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    {loading ? 'Starting Chat...' : 'Start Chat'}
+                    Contact Counselor
                   </Button>
                 </div>
               </CardContent>

@@ -24,11 +24,11 @@ const Login = () => {
     setError('');
 
     try {
-      const { success, error: authError } = await login(email, password);
+      const success = await login(email, password);
       if (success) {
         navigate('/');
       } else {
-        setError(authError || 'Invalid email or password. Please try again.');
+        setError('Invalid email or password. Please try again.');
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');

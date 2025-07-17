@@ -93,11 +93,12 @@ const Signup = () => {
         })
       };
 
-      const { success, error: authError } = await signup(userData);
+      const success = await signup(userData);
       if (success) {
-        setSuccess('Account created successfully! Please check your email to verify your account.');
+        setSuccess('Account created successfully! Redirecting...');
+        setTimeout(() => navigate('/'), 2000);
       } else {
-        setError(authError || 'An account with this email already exists.');
+        setError('An account with this email already exists.');
       }
     } catch (err) {
       setError('An error occurred during registration. Please try again.');
