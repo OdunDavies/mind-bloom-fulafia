@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,15 +7,18 @@ import { User, Mail, Calendar, BookOpen, Clock, MapPin, FileText, Award, Heart }
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, profile, logout } = useAuth();
+  const { user, quizResult, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!user || !profile) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-4">Loading Profile...</h2>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <h2 className="text-2xl font-semibold mb-4">Access Restricted</h2>
+          <p className="text-muted-foreground mb-6">Please log in to view your profile.</p>
+          <Button onClick={() => navigate('/login')}>
+            Login
+          </Button>
         </div>
       </div>
     );
@@ -57,10 +60,10 @@ const Profile = () => {
               <User className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary-accent bg-clip-text text-transparent mb-2">
-              {profile.name}
+              {user.name}
             </h1>
             <Badge variant="secondary" className="text-sm">
-              {profile.user_type === 'student' ? 'Student' : 'Counselor'}
+              {user.userType === 'student' ? 'Student' : 'Counselor'}
             </Badge>
           </div>
 
@@ -78,50 +81,50 @@ const Profile = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Full Name</label>
-                      <p className="text-foreground font-medium">{profile.name}</p>
+                      <p className="text-foreground font-medium">{user.name}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Email</label>
                       <div className="flex items-center">
                         <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <p className="text-foreground">{profile.email}</p>
+                        <p className="text-foreground">{user.email}</p>
                       </div>
                     </div>
-                    {profile.user_type === 'student' && (
+                    {user.userType === 'student' && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Age</label>
-                          <p className="text-foreground">{profile.age || 'Not specified'}</p>
+                          <p className="text-foreground">{user.age}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Gender</label>
-                          <p className="text-foreground">{profile.gender || 'Not specified'}</p>
+                          <p className="text-foreground">{user.gender}</p>
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-sm font-medium text-muted-foreground">Department</label>
                           <div className="flex items-center">
                             <BookOpen className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <p className="text-foreground">{profile.department || 'Not specified'}</p>
+                            <p className="text-foreground">{user.department}</p>
                           </div>
                         </div>
                       </>
                     )}
-                    {profile.user_type === 'counselor' && (
+                    {user.userType === 'counselor' && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Specialty</label>
-                          <p className="text-foreground">{profile.specialty || 'Not specified'}</p>
+                          <p className="text-foreground">{user.specialty}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">Availability</label>
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <p className="text-foreground">{profile.availability || 'Not specified'}</p>
+                            <p className="text-foreground">{user.availability}</p>
                           </div>
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-sm font-medium text-muted-foreground">Bio</label>
-                          <p className="text-foreground leading-relaxed">{profile.bio || 'Not specified'}</p>
+                          <p className="text-foreground leading-relaxed">{user.bio}</p>
                         </div>
                       </>
                     )}
@@ -129,7 +132,7 @@ const Profile = () => {
                       <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <p className="text-foreground">{profile.created_at ? formatDate(profile.created_at) : 'Not specified'}</p>
+                        <p className="text-foreground">{formatDate(user.createdAt)}</p>
                       </div>
                     </div>
                   </div>
@@ -137,7 +140,7 @@ const Profile = () => {
               </Card>
 
               {/* Quiz Results for Students */}
-              {profile.user_type === 'student' && (
+              {user.userType === 'student' && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -149,38 +152,38 @@ const Profile = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {profile.quiz_result ? (
+                    {quizResult ? (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={`px-3 py-1 rounded-full border flex items-center space-x-2 ${getResultColor(profile.quiz_result)}`}>
-                              {getResultIcon(profile.quiz_result)}
-                              <span className="font-medium">{profile.quiz_result}</span>
+                            <div className={`px-3 py-1 rounded-full border flex items-center space-x-2 ${getResultColor(quizResult.result)}`}>
+                              {getResultIcon(quizResult.result)}
+                              <span className="font-medium">{quizResult.result}</span>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Score: {profile.quiz_score || 'N/A'}/24
+                              Score: {quizResult.score}/24
                             </div>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {profile.quiz_timestamp ? formatDate(profile.quiz_timestamp) : 'N/A'}
+                            {formatDate(quizResult.timestamp)}
                           </div>
                         </div>
                         
                         <div className="p-4 bg-muted/50 rounded-lg">
                           <h4 className="font-medium mb-2 text-foreground">Recommendations:</h4>
-                          {profile.quiz_result === 'Mild' && (
+                          {quizResult.result === 'Mild' && (
                             <p className="text-sm text-muted-foreground">
                               Your mental health appears to be in a good state. Continue practicing self-care 
                               and maintain healthy coping strategies. Consider our resources for ongoing wellness.
                             </p>
                           )}
-                          {profile.quiz_result === 'Moderate' && (
+                          {quizResult.result === 'Moderate' && (
                             <p className="text-sm text-muted-foreground">
                               You may be experiencing some mental health challenges. Consider speaking with 
                               a counselor and explore our self-help resources. Remember, seeking help is a sign of strength.
                             </p>
                           )}
-                          {profile.quiz_result === 'Critical' && (
+                          {quizResult.result === 'Critical' && (
                             <p className="text-sm text-muted-foreground">
                               Your responses indicate you may be struggling significantly. We strongly recommend 
                               reaching out to a mental health professional immediately. Crisis support is available 24/7.
@@ -221,7 +224,7 @@ const Profile = () => {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {profile.user_type === 'student' && (
+                  {user.userType === 'student' && (
                     <>
                       <Button 
                         variant="outline" 

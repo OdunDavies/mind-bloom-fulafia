@@ -6,10 +6,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Quiz = () => {
-  const { user, profile, updateQuizResult } = useAuth();
+  const { user, updateQuizResult } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showResult, setShowResult] = useState(false);
@@ -207,7 +207,7 @@ const Quiz = () => {
     );
   }
 
-  if (profile?.user_type !== 'student') {
+  if (user.userType !== 'student') {
     return (
       <div className="container mx-auto px-4 py-16">
         <Card className="max-w-md mx-auto card-soft">
