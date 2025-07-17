@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MessageSquare, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ChatWindow } from '@/components/ChatWindow';
+import { getMessagesBetween, saveMessage } from '@/lib/chatUtils';
+import { Message } from '@/models/Message';
+import { v4 as uuidv4 } from 'uuid'; // Install: npm install uuid
 
 interface Counselor {
   id: string;
@@ -32,6 +36,9 @@ const Contact = () => {
   const navigate = useNavigate();
   const [counselors, setCounselors] = useState<Counselor[]>([]);
   const [criticalStudents, setCriticalStudents] = useState<StudentWithAssessment[]>([]);
+  const [chatUser, setChatUser] = useState<Counselor | StudentWithAssessment | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+
 
   useEffect(() => {
     if (user?.userType === 'counselor') {
@@ -132,15 +139,27 @@ const Contact = () => {
   }, [user, navigate]);
 
   const handleContactCounselor = (counselor: Counselor) => {
-    // In a real app, this would open a chat or booking system
-    alert(`Contact feature coming soon! You can reach ${counselor.name} at ${counselor.email}`);
+    setChatUser(counselor);
+    setMessages(getMessagesBetween(user.email, counselor.email));
   };
-
+  
   const handleContactStudent = (student: StudentWithAssessment) => {
-    // In a real app, this would open a chat or send an email
-    alert(`Contact feature coming soon! You can reach ${student.name} at ${student.email}`);
+    setChatUser(student);
+    setMessages(getMessagesBetween(user.email, student.email));
   };
-
+  
+  const handleSendMessage = (content: string) => {
+    if (!chatUser) return;
+    const msg: Message = {
+      id: uuidv4(),
+      from: user.email,
+      to: 'email' in chatUser ? chatUser.email : '', // TypeScript type narrowing
+      content,
+      timestamp: new Date().toISOString(),
+    };
+    saveMessage(msg);
+    setMessages(prev => [...prev, msg]);
+  };
   // Show different content for counselors vs students
   if (user?.userType === 'counselor') {
     return (
