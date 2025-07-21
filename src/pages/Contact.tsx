@@ -349,6 +349,16 @@ const Contact = () => {
             </CardContent>
           </Card>
         </div>
+
+        {chatUser && (
+          <ChatWindow
+            user={user}
+            chatUser={chatUser}
+            messages={messages}
+            onSend={handleSendMessage}
+            onClose={() => setChatUser(null)}
+          />
+        )}
       </div>
     </div>
   );
