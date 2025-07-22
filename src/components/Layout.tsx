@@ -16,6 +16,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Contact', href: '/contact', icon: '👥' },
     { name: 'Blog', href: '/blog', icon: '✍️' },
     { name: 'About', href: '/about', icon: 'ℹ️' },
+    ...(user?.userType === 'counselor' ? [{ name: 'Admin', href: '/admin', icon: '⚙️' }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
