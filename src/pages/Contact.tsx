@@ -1,114 +1,120 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSocket } from '@/hooks/useSocket';
+import { apiService, User as ApiUser, Message as ApiMessage } from '@/services/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { User, Mail, MessageSquare, Send, Users, Search } from 'lucide-react';
+import { User, Mail, MessageSquare, Send, Users, Search, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-
-interface StoredUser {
-  id: string;
-  name: string;
-  email: string;
-  userType: 'student' | 'counselor';
-  age?: number;
-  gender?: string;
-  department?: string;
-  specialty?: string;
-  bio?: string;
-  availability?: string;
-  createdAt: string;
-}
-
-interface Message {
-  id: string;
-  from: string;
-  to: string;
-  fromName: string;
-  toName: string;
-  content: string;
-  timestamp: string;
-}
+import { v4 as uuidv4 } from 'uuid';
 
 const Contact = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [users, setUsers] = useState<StoredUser[]>([]);
-  const [selectedUser, setSelectedUser] = useState<StoredUser | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { 
+    isConnected, 
+    sendMessage, 
+    messages: socketMessages, 
+    onlineUsers, 
+    typingUsers,
+    setTyping 
+  } = useSocket();
+  
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<ApiMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-
-    // Load users from localStorage
-    const savedUsers = localStorage.getItem('fulafia_users');
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers) as StoredUser[];
-      // Filter out current user and show appropriate users based on role
-      const filteredUsers = allUsers.filter(u => {
-        if (u.id === user.id) return false; // Don't show current user
-        
-        if (user.userType === 'counselor') {
-          return u.userType === 'student'; // Counselors see students
-        } else {
-          return u.userType === 'counselor'; // Students see counselors
-        }
-      });
-      setUsers(filteredUsers);
-    }
+    loadUsers();
   }, [user]);
 
+  // Load conversation when user is selected
   useEffect(() => {
     if (selectedUser && user) {
-      loadMessages(user.id, selectedUser.id);
+      loadConversation(user.id, selectedUser._id);
     }
   }, [selectedUser, user]);
 
-  const loadMessages = (userId1: string, userId2: string) => {
-    const savedMessages = localStorage.getItem('fulafia_messages');
-    if (savedMessages) {
-      const allMessages = JSON.parse(savedMessages) as Message[];
-      const conversation = allMessages.filter(msg => 
-        (msg.from === userId1 && msg.to === userId2) || 
-        (msg.from === userId2 && msg.to === userId1)
-      ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      setMessages(conversation);
+  // Handle new socket messages
+  useEffect(() => {
+    if (selectedUser && socketMessages.length > 0) {
+      const relevantMessages = socketMessages.filter(msg => 
+        (msg.from._id === selectedUser._id && msg.to === user?.id) ||
+        (msg.from._id === user?.id && msg.to === selectedUser._id)
+      );
+      
+      if (relevantMessages.length > 0) {
+        setConversationMessages(prev => [...prev, ...relevantMessages]);
+      }
+    }
+  }, [socketMessages, selectedUser, user]);
+
+  const loadUsers = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const fetchedUsers = await apiService.getUsers(user.userType);
+      setUsers(fetchedUsers);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const sendMessage = () => {
+  const loadConversation = async (userId1: string, userId2: string) => {
+    try {
+      const messages = await apiService.getMessages(userId1, userId2);
+      setConversationMessages(messages);
+      
+      // Mark messages as read
+      await apiService.markMessagesAsRead(userId1, userId2);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  };
+
+  const handleSendMessage = () => {
     if (!user || !selectedUser || !newMessage.trim()) return;
 
-    const message: Message = {
-      id: Date.now().toString(),
-      from: user.id,
-      to: selectedUser.id,
-      fromName: user.name,
-      toName: selectedUser.name,
-      content: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    // Save message to localStorage
-    const savedMessages = localStorage.getItem('fulafia_messages');
-    const allMessages = savedMessages ? JSON.parse(savedMessages) : [];
-    allMessages.push(message);
-    localStorage.setItem('fulafia_messages', JSON.stringify(allMessages));
-
-    // Update local state
-    setMessages(prev => [...prev, message]);
+    // Send via socket
+    sendMessage(selectedUser._id, newMessage.trim());
     setNewMessage('');
+    setIsTyping(false);
+    setTyping(selectedUser._id, false);
 
     toast({
       title: "Message Sent",
-      description: `Your message has been sent to ${selectedUser.name}`,
+      description: `Your message has been sent to ${selectedUser.name}`
     });
+  };
+
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    
+    if (selectedUser && user) {
+      const typing = value.length > 0;
+      if (typing !== isTyping) {
+        setIsTyping(typing);
+        setTyping(selectedUser._id, typing);
+      }
+    }
   };
 
   const formatDate = (timestamp: string) => {
@@ -186,16 +192,19 @@ const Contact = () => {
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {filteredUsers.map((userData) => (
                     <div
-                      key={userData.id}
+                      key={userData._id}
                       onClick={() => setSelectedUser(userData)}
                       className={`p-3 rounded-lg border cursor-pointer transition-smooth hover:bg-muted/50 ${
-                        selectedUser?.id === userData.id ? 'bg-primary/10 border-primary' : 'border-border'
+                        selectedUser?._id === userData._id ? 'bg-primary/10 border-primary' : 'border-border'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center">
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center relative">
                             <User className="h-5 w-5 text-white" />
+                            {onlineUsers.has(userData._id) && (
+                              <Circle className="absolute -bottom-1 -right-1 h-3 w-3 fill-green-500 text-green-500" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground truncate">{userData.name}</p>
@@ -208,9 +217,14 @@ const Contact = () => {
                             )}
                           </div>
                         </div>
-                        <Badge variant={userData.userType === 'student' ? 'secondary' : 'default'} className="text-xs">
-                          {userData.userType === 'student' ? 'Student' : 'Counselor'}
-                        </Badge>
+                        <div className="flex flex-col items-end space-y-1">
+                          <Badge variant={userData.userType === 'student' ? 'secondary' : 'default'} className="text-xs">
+                            {userData.userType === 'student' ? 'Student' : 'Counselor'}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {onlineUsers.has(userData._id) ? 'Online' : `Last seen ${formatDate(userData.lastSeen)}`}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -233,7 +247,8 @@ const Contact = () => {
             {selectedUser ? (
               <Card className="h-[600px] flex flex-col">
                 <CardHeader className="border-b">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center">
                       <User className="h-6 w-6 text-white" />
                     </div>
@@ -247,6 +262,13 @@ const Contact = () => {
                         </Badge>
                       </CardDescription>
                     </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-sm text-muted-foreground">
+                        {isConnected ? 'Connected' : 'Disconnected'}
+                      </span>
+                    </div>
                   </div>
                   {selectedUser.userType === 'counselor' && selectedUser.availability && (
                     <p className="text-sm text-muted-foreground">Available: {selectedUser.availability}</p>
@@ -256,33 +278,42 @@ const Contact = () => {
                 {/* Messages */}
                 <CardContent className="flex-1 overflow-y-auto p-4">
                   <div className="space-y-4">
-                    {messages.length === 0 ? (
+                    {conversationMessages.length === 0 ? (
                       <div className="text-center py-8">
                         <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                         <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
                       </div>
                     ) : (
-                      messages.map((message) => (
+                      conversationMessages.map((message) => (
                         <div
-                          key={message.id}
-                          className={`flex ${message.from === user.id ? 'justify-end' : 'justify-start'}`}
+                          key={message._id}
+                          className={`flex ${message.from._id === user.id ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              message.from === user.id
+                              message.from._id === user.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted text-foreground'
                             }`}
                           >
                             <p className="text-sm">{message.content}</p>
                             <p className={`text-xs mt-1 ${
-                              message.from === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              message.from._id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
                             }`}>
                               {formatDate(message.timestamp)}
                             </p>
                           </div>
                         </div>
                       ))
+                    )}
+                    
+                    {/* Typing indicator */}
+                    {typingUsers.has(selectedUser._id) && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted text-foreground px-4 py-2 rounded-lg">
+                          <p className="text-sm italic">{selectedUser.name} is typing...</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -293,17 +324,17 @@ const Contact = () => {
                     <Textarea
                       placeholder={`Send a message to ${selectedUser.name}...`}
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={(e) => handleTyping(e.target.value)}
                       className="flex-1 min-h-[60px] resize-none"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          sendMessage();
+                          handleSendMessage();
                         }
                       }}
                     />
                     <Button 
-                      onClick={sendMessage}
+                      onClick={handleSendMessage}
                       disabled={!newMessage.trim()}
                       className="self-end"
                     >

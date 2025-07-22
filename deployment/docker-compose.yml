@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: fulafia-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: fulafia
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fulafia-network
+
+  # Backend Server
+  backend:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: fulafia-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/fulafia?authSource=admin
+      - JWT_SECRET=your_super_secret_jwt_key_here
+      - CLIENT_URL=https://your-domain.com
+      - PORT=5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - fulafia-network
+
+  # Frontend (Nginx)
+  frontend:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.frontend
+    container_name: fulafia-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - fulafia-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  fulafia-network:
+    driver: bridge
