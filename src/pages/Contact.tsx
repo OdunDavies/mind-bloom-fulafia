@@ -351,13 +351,17 @@ const Contact = () => {
         </div>
 
         {chatUser && (
-          <ChatWindow
-            user={user}
-            chatUser={chatUser}
-            messages={messages}
-            onSend={handleSendMessage}
-            onClose={() => setChatUser(null)}
-          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="relative w-full max-w-lg mx-auto">
+              <ChatWindow
+                user={user}
+                chatUser={chatUser}
+                messages={messages}
+                onSend={handleSendMessage}
+                onClose={() => setChatUser(null)}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
