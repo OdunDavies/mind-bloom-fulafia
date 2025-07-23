@@ -94,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -151,9 +152,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout error:', error);
     }
-  };
-
-  const logout = () => {
     setUser(null);
     setQuizResult(null);
     localStorage.removeItem('fulafia_user');
@@ -176,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Error updating quiz result:', error);
           }
         });
+      localStorage.setItem(`fulafia_quiz_${user.id}`, JSON.stringify(result));
     }
   };
 
@@ -203,11 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error in updateProfile:', error);
       return false;
-    }
-  };
-    setQuizResult(result);
-    if (user) {
-      localStorage.setItem(`fulafia_quiz_${user.id}`, JSON.stringify(result));
     }
   };
 
