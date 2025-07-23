@@ -149,12 +149,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setQuizResult(null);
+      localStorage.removeItem('fulafia_user');
     } catch (error) {
       console.error('Logout error:', error);
     }
-    setUser(null);
-    setQuizResult(null);
-    localStorage.removeItem('fulafia_user');
   };
 
   const updateQuizResult = (result: QuizResult) => {
