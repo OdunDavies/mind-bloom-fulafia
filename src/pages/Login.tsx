@@ -28,7 +28,7 @@ const Login = () => {
       if (success) {
         navigate('/');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError('Invalid email or password. Please check your credentials and try again.');
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');

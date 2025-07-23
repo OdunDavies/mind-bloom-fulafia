@@ -81,7 +81,7 @@ const Signup = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        userType,
+        userType: userType,
         ...(userType === 'student' ? {
           age: parseInt(formData.age),
           gender: formData.gender,
@@ -95,10 +95,9 @@ const Signup = () => {
 
       const success = await signup(userData);
       if (success) {
-        setSuccess('Account created successfully! Redirecting...');
-        setTimeout(() => navigate('/'), 2000);
+        setSuccess('Account created successfully! Please check your email to verify your account, then you can sign in.');
       } else {
-        setError('An account with this email already exists.');
+        setError('Failed to create account. Please try again or check if an account with this email already exists.');
       }
     } catch (err) {
       setError('An error occurred during registration. Please try again.');
