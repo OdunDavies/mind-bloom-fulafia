@@ -1,59 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Profile } from '@/lib/supabase';
+import { useSocket } from '@/hooks/useSocket';
+import { apiService, User as ApiUser, Message as ApiMessage } from '@/services/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { User, Mail, MessageSquare, Send, Users, Search, Circle, Loader2 } from 'lucide-react';
+import { User, Mail, MessageSquare, Send, Users, Search, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 const Contact = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { 
+    isConnected, 
+    sendMessage, 
+    messages: socketMessages, 
+    onlineUsers, 
+    typingUsers,
+    setTyping 
+  } = useSocket();
   
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [conversationMessages, setConversationMessages] = useState<any[]>([]);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<ApiUser | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<ApiMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || authLoading) return;
+    if (!user) return;
     loadUsers();
-  }, [user, authLoading]);
+  }, [user]);
+
+  // Load conversation when user is selected
+  useEffect(() => {
+    if (selectedUser && user) {
+      loadConversation(user.id, selectedUser._id);
+    }
+  }, [selectedUser, user]);
+
+  // Handle new socket messages
+  useEffect(() => {
+    if (selectedUser && socketMessages.length > 0) {
+      const relevantMessages = socketMessages.filter(msg => 
+        (msg.from._id === selectedUser._id && msg.to === user?.id) ||
+        (msg.from._id === user?.id && msg.to === selectedUser._id)
+      );
+      
+      if (relevantMessages.length > 0) {
+        setConversationMessages(prev => [...prev, ...relevantMessages]);
+      }
+    }
+  }, [socketMessages, selectedUser, user]);
 
   const loadUsers = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
-      
-      // Determine which user type to fetch based on current user
-      const targetUserType = user.userType === 'student' ? 'counselor' : 'student';
-      
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_type', targetUserType)
-        .order('is_online', { ascending: false })
-        .order('last_seen', { ascending: false });
-
-      if (error) {
-        console.error('Error loading users:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load users. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setUsers(profiles || []);
+      const fetchedUsers = await apiService.getUsers(user.userType);
+      setUsers(fetchedUsers);
     } catch (error) {
       console.error('Failed to load users:', error);
       toast({
@@ -66,6 +78,45 @@ const Contact = () => {
     }
   };
 
+  const loadConversation = async (userId1: string, userId2: string) => {
+    try {
+      const messages = await apiService.getMessages(userId1, userId2);
+      setConversationMessages(messages);
+      
+      // Mark messages as read
+      await apiService.markMessagesAsRead(userId1, userId2);
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!user || !selectedUser || !newMessage.trim()) return;
+
+    // Send via socket
+    sendMessage(selectedUser._id, newMessage.trim());
+    setNewMessage('');
+    setIsTyping(false);
+    setTyping(selectedUser._id, false);
+
+    toast({
+      title: "Message Sent",
+      description: `Your message has been sent to ${selectedUser.name}`
+    });
+  };
+
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    
+    if (selectedUser && user) {
+      const typing = value.length > 0;
+      if (typing !== isTyping) {
+        setIsTyping(typing);
+        setTyping(selectedUser._id, typing);
+      }
+    }
+  };
+
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
       month: 'short',
@@ -75,31 +126,12 @@ const Contact = () => {
     });
   };
 
-  const handleStartConversation = (targetUser: Profile) => {
-    setSelectedUser(targetUser);
-    toast({
-      title: "Conversation Started",
-      description: `You can now chat with ${targetUser.name}. Real-time messaging will be available soon.`
-    });
-  };
-
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (u.department && u.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (u.specialty && u.specialty.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!user) {
     return (
@@ -160,37 +192,37 @@ const Contact = () => {
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {filteredUsers.map((userData) => (
                     <div
-                      key={userData.id}
-                      onClick={() => handleStartConversation(userData)}
+                      key={userData._id}
+                      onClick={() => setSelectedUser(userData)}
                       className={`p-3 rounded-lg border cursor-pointer transition-smooth hover:bg-muted/50 ${
-                        selectedUser?.id === userData.id ? 'bg-primary/10 border-primary' : 'border-border'
+                        selectedUser?._id === userData._id ? 'bg-primary/10 border-primary' : 'border-border'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center relative">
                             <User className="h-5 w-5 text-white" />
-                            {userData.is_online && (
+                            {onlineUsers.has(userData._id) && (
                               <Circle className="absolute -bottom-1 -right-1 h-3 w-3 fill-green-500 text-green-500" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground truncate">{userData.name}</p>
                             <p className="text-sm text-muted-foreground truncate">{userData.email}</p>
-                            {userData.user_type === 'student' && userData.department && (
+                            {userData.userType === 'student' && userData.department && (
                               <p className="text-xs text-muted-foreground">{userData.department}</p>
                             )}
-                            {userData.user_type === 'counselor' && userData.specialty && (
+                            {userData.userType === 'counselor' && userData.specialty && (
                               <p className="text-xs text-muted-foreground">{userData.specialty}</p>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end space-y-1">
-                          <Badge variant={userData.user_type === 'student' ? 'secondary' : 'default'} className="text-xs">
-                            {userData.user_type === 'student' ? 'Student' : 'Counselor'}
+                          <Badge variant={userData.userType === 'student' ? 'secondary' : 'default'} className="text-xs">
+                            {userData.userType === 'student' ? 'Student' : 'Counselor'}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {userData.is_online ? 'Online' : `Last seen ${formatDate(userData.last_seen)}`}
+                            {onlineUsers.has(userData._id) ? 'Online' : `Last seen ${formatDate(userData.lastSeen)}`}
                           </span>
                         </div>
                       </div>
@@ -217,78 +249,101 @@ const Contact = () => {
                 <CardHeader className="border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle>{selectedUser.name}</CardTitle>
-                        <CardDescription className="flex items-center space-x-2">
-                          <Mail className="h-4 w-4" />
-                          <span>{selectedUser.email}</span>
-                          <Badge variant={selectedUser.user_type === 'student' ? 'secondary' : 'default'}>
-                            {selectedUser.user_type === 'student' ? 'Student' : 'Counselor'}
-                          </Badge>
-                        </CardDescription>
-                      </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary-accent rounded-full flex items-center justify-center">
+                      <User className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle>{selectedUser.name}</CardTitle>
+                      <CardDescription className="flex items-center space-x-2">
+                        <Mail className="h-4 w-4" />
+                        <span>{selectedUser.email}</span>
+                        <Badge variant={selectedUser.userType === 'student' ? 'secondary' : 'default'}>
+                          {selectedUser.userType === 'student' ? 'Student' : 'Counselor'}
+                        </Badge>
+                      </CardDescription>
+                    </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${selectedUser.is_online ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
                       <span className="text-sm text-muted-foreground">
-                        {selectedUser.is_online ? 'Online' : 'Offline'}
+                        {isConnected ? 'Connected' : 'Disconnected'}
                       </span>
                     </div>
                   </div>
-                  {selectedUser.user_type === 'counselor' && selectedUser.availability && (
+                  {selectedUser.userType === 'counselor' && selectedUser.availability && (
                     <p className="text-sm text-muted-foreground">Available: {selectedUser.availability}</p>
                   )}
                 </CardHeader>
 
                 {/* Messages */}
                 <CardContent className="flex-1 overflow-y-auto p-4">
-                  <div className="text-center py-8">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold mb-2">Real-time Chat Coming Soon</h3>
-                    <p className="text-muted-foreground mb-4">
-                      You've selected {selectedUser.name} for conversation. 
-                      Real-time messaging functionality will be available in the next update.
-                    </p>
-                    <div className="bg-muted/50 rounded-lg p-4 text-left">
-                      <h4 className="font-medium mb-2">Contact Information:</h4>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        <strong>Email:</strong> {selectedUser.email}
-                      </p>
-                      {selectedUser.user_type === 'counselor' && selectedUser.specialty && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          <strong>Specialty:</strong> {selectedUser.specialty}
-                        </p>
-                      )}
-                      {selectedUser.user_type === 'counselor' && selectedUser.availability && (
-                        <p className="text-sm text-muted-foreground mb-1">
-                          <strong>Availability:</strong> {selectedUser.availability}
-                        </p>
-                      )}
-                      {selectedUser.user_type === 'counselor' && selectedUser.bio && (
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Bio:</strong> {selectedUser.bio}
-                        </p>
-                      )}
-                    </div>
+                  <div className="space-y-4">
+                    {conversationMessages.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-muted-foreground">No messages yet. Start the conversation!</p>
+                      </div>
+                    ) : (
+                      conversationMessages.map((message) => (
+                        <div
+                          key={message._id}
+                          className={`flex ${message.from._id === user.id ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                              message.from._id === user.id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted text-foreground'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                            <p className={`text-xs mt-1 ${
+                              message.from._id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                            }`}>
+                              {formatDate(message.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    
+                    {/* Typing indicator */}
+                    {typingUsers.has(selectedUser._id) && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted text-foreground px-4 py-2 rounded-lg">
+                          <p className="text-sm italic">{selectedUser.name} is typing...</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
 
-                {/* Contact Actions */}
+                {/* Message Input */}
                 <div className="border-t p-4">
-                  <div className="flex space-x-2 justify-center">
-                    <Button variant="outline" asChild>
-                      <a href={`mailto:${selectedUser.email}`}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Send Email
-                      </a>
-                    </Button>
-                    <Button variant="outline" onClick={() => setSelectedUser(null)}>
-                      Back to List
+                  <div className="flex space-x-2">
+                    <Textarea
+                      placeholder={`Send a message to ${selectedUser.name}...`}
+                      value={newMessage}
+                      onChange={(e) => handleTyping(e.target.value)}
+                      className="flex-1 min-h-[60px] resize-none"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim()}
+                      className="self-end"
+                    >
+                      <Send className="h-4 w-4" />
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press Enter to send, Shift+Enter for new line
+                  </p>
                 </div>
               </Card>
             ) : (
@@ -297,7 +352,7 @@ const Contact = () => {
                   <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Select a {user.userType === 'counselor' ? 'Student' : 'Counselor'}</h3>
                   <p className="text-muted-foreground">
-                    Choose someone from the list to view their contact information
+                    Choose someone from the list to start a conversation
                   </p>
                 </div>
               </Card>
@@ -313,8 +368,9 @@ const Contact = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                All interactions are private and confidential. Please maintain professional boundaries 
-                and respect in all communications. Real-time messaging will be available soon.
+                All conversations are private and confidential. Messages are stored securely and only 
+                accessible to the participants. Please maintain professional boundaries and respect 
+                in all communications.
               </p>
             </CardContent>
           </Card>
